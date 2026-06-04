@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f172a; color: #f1f5f9; font-family: Inter, system-ui, sans-serif; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; text-align: center; }
+        h1 { font-size: 2.5rem; color: #fbbf24; margin-bottom: 10px; }
+        p { color: #94a3b8; margin-bottom: 30px; }
+        .status { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-top: 30px; }
+        .loading { display: inline-block; width: 12px; height: 12px; background: #10b981; border-radius: 50%; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stock Analyzer</h1>
+        <p>Análisis Técnico en Tiempo Real</p>
+        <div class="status">
+            <p>Iniciando dashboard... <span class="loading"></span></p>
+            <p style="font-size: 0.9rem; margin-top: 15px;">Si ves este mensaje por más de 30 segundos, <a href="/">recarga la página</a></p>
+        </div>
+    </div>
+    <script>
+        // Intentar cargar la app real cada 2 segundos
+        setInterval(() => {
+            fetch('/api/health').then(r => {
+                if (r.ok) window.location.reload();
+            }).catch(() => {});
+        }, 2000);
+    </script>
+</body>
+</html>
