@@ -1,18 +1,16 @@
 import os
-import requests
-from datetime import datetime
-from flask import Flask, jsonify, request, send_from_directory
+import yfinance as yf
+from datetime import datetime, timedelta
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
 load_dotenv()
+
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
-FMP_API_KEY = os.getenv('FMP_API_KEY')
-BASE_URL = "https://financialmodelingprep.com/api/v3"
 TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOG', 'GOOGL', 'AMZN', 'META', 'TSLA', 'BRK.B', 'JNJ', 'V', 'WMT', 'JPM', 'MA', 'PG', 'KO', 'HD', 'MCD', 'NFLX', 'CSCO', 'ADBE', 'CRM', 'INTC', 'AMD', 'QCOM', 'AVGO', 'ASML', 'MCHP', 'MRVL', 'BAC', 'WFC', 'GS', 'MS', 'BLK', 'ICE', 'CME', 'AXP', 'UNH', 'LLY', 'MRK', 'ABBV', 'PFE', 'XOM', 'CVX', 'TJX', 'LOW', 'MKS', 'NKE', 'CL', 'BA', 'CAT', 'GE', 'LUV', 'DAL', 'SPY', 'QQQ', 'IWM', 'EEM', 'GLD', 'TLT', 'USO', 'DBC']
-CACHE_EXPIRY_HOURS = 4
 
 class CacheManager:
     def __init__(self):
@@ -21,7 +19,7 @@ class CacheManager:
     def get(self, key):
         if key in self.data:
             timestamp = self.timestamps.get(key)
-            if timestamp and (datetime.now() - timestamp).total_seconds() < CACHE_EXPIRY_HOURS * 3600:
+            if timestamp and (datetime.now() - timestamp).total_seconds() < 14400:
                 return self.data[key]
         return None
     def set(self, key, value):
@@ -35,14 +33,23 @@ def fetch_historical_data(ticker):
     if cached:
         return cached
     try:
-        url = f"{BASE_URL}/historical-price-full/{ticker}?from=2023-06-04&to=2024-06-04&apikey={FMP_API_KEY}"
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if 'historical' in data:
-                historical = sorted(data['historical'], key=lambda x: x['date'])
-                cache.set(f"hist_{ticker}", historical)
-                return historical
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365)
+        hist = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        if hist.empty:
+            return []
+        historical = []
+        for date, row in hist.iterrows():
+            historical.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'open': float(row['Open']),
+                'high': float(row['High']),
+                'low': float(row['Low']),
+                'close': float(row['Close']),
+                'volume': int(row['Volume']) if not None else 0
+            })
+        cache.set(f"hist_{ticker}", historical)
+        return historical
     except Exception as e:
         print(f"Error: {e}")
     return []
